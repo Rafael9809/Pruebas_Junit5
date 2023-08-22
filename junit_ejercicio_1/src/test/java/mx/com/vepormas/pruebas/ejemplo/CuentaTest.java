@@ -4,6 +4,8 @@ import mx.com.vepormas.pruebas.ejemplo.modelos.Banco;
 import mx.com.vepormas.pruebas.ejemplo.modelos.Cuenta;
 import mx.com.vepormas.pruebas.exceptions.*;
 import java.math.BigDecimal;
+import java.util.Map;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,6 +17,12 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.EnabledOnJre;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.JRE;
+import org.junit.jupiter.api.condition.OS;
 
 //@TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class CuentaTest {
@@ -103,6 +111,53 @@ class CuentaTest {
 				()->assertEquals("Usuario_2",banco.getCuentas().stream().filter(c->c.getPersona().equals("Usuario_2")).findFirst().get().getPersona()), 
 				()->assertTrue(banco.getCuentas().stream().anyMatch(c->c.getPersona().equals("Usuario_1"))));
 	}
-	
+
+	@Test
+	@EnabledOnOs(OS.WINDOWS)
+	void testWindows(){
+		System.out.println("Tests ejecutados en SO Windows");
+	}
+
+	@Test
+	@EnabledOnOs(OS.LINUX)
+	void testLinux(){
+		System.out.println("Tests ejecutados en SO Linux");
+	}
+
+	@Test
+	@EnabledOnJre(JRE.JAVA_17)
+	void testJRE17(){
+		System.out.println("Tests ejecutados en JAVA 17");
+	}
+
+	@Test
+	@EnabledOnJre(JRE.JAVA_8)
+	void testJRE8(){
+		System.out.println("Tests ejecutados en JAVA 8");
+	}
+
+	@Test
+	void imprimirSP(){
+		Properties properties = System.getProperties();
+		properties.forEach((k,v)->System.out.println(k+" = "+v));
+	}
+
+	@Test
+	@EnabledIfSystemProperty(named ="os.arch", matches = ".*64.*")
+	void testSP(){
+		System.out.println("Tests ejecutados si arquitectura es de 64 bits");
+	}
+
+	@Test
+	void imprimirEV(){
+		Map<String, String> getenv = System.getenv();
+		getenv.forEach((k,v)->System.out.println(k+" = "+v));
+	}
+
+	@Test
+	@EnabledIfEnvironmentVariable(named="NUMBER_OF_PROCESSORS", matches="8")
+	void testEV(){
+		System.out.println("Tests ejecutados si el numero de procesadores es igual a 8");
+	}
 	
 	}

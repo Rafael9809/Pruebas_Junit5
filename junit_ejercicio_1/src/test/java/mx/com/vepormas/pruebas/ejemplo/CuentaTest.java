@@ -4,8 +4,12 @@ import mx.com.vepormas.pruebas.ejemplo.modelos.Banco;
 import mx.com.vepormas.pruebas.ejemplo.modelos.Cuenta;
 import mx.com.vepormas.pruebas.exceptions.*;
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.*;
@@ -18,7 +22,9 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
@@ -26,10 +32,19 @@ import org.junit.jupiter.api.condition.EnabledOnJre;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvFileSource;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.api.TestReporter;
+import org.junit.jupiter.api.Timeout;
 
 //@TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class CuentaTest {
 	Cuenta cuenta;
+	TestInfo testInfo; 
+	TestReporter testReporter;
 
 	@BeforeAll
 	static void antes(){
@@ -42,8 +57,13 @@ class CuentaTest {
 	}
 
 	@BeforeEach
-	void initMethodTest(){
+	void initMethodTest(TestInfo testInfo, TestReporter testReporter){
 		this.cuenta = new Cuenta("Rafael", new BigDecimal("1000.2112"));
+		this.testInfo=testInfo;
+		this.testReporter=testReporter;
+		if(testInfo.getTags().size()>0){
+			System.out.println("Metodo test con etiqueta: "+testInfo.getTags());
+		}
 	}
 
 	@AfterEach
@@ -162,6 +182,7 @@ class CuentaTest {
 		}
 	}
 
+	@Tag("jre")
 	@Nested
 	class JRETest{
 		@Test
@@ -187,4 +208,74 @@ class CuentaTest {
 		System.out.println("El metodo de test se ejecuto ya java.vendor es oracle");
 		});
 	}
+
+	@ParameterizedTest(name = "numero {index} ejecutando con valor {0} - {argumentsWithNames}")
+	@ValueSource(strings = {"100","200","900"})
+	void testDebitoCuentaValueSource(String monto)
+	{
+		assertNotNull(cuenta.getSaldo());
+		cuenta.debito(new BigDecimal(monto));
+		assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO)>0);
 	}
+
+	@ParameterizedTest(name = "metodo con csv en argumento, numero {index} ejecutando con valor {0} - {argumentsWithNames}")
+	@CsvSource({"1,100", "2,200", "3,500", "4,900"})
+	void testDebitoCuentaCsv(String index, String monto)
+	{
+		assertNotNull(cuenta.getSaldo());
+		cuenta.debito(new BigDecimal(monto));
+		assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO)>0);
+	}
+
+	@ParameterizedTest(name = "metodo con csv en archivo, numero {index} ejecutando con valor {0} - {argumentsWithNames}")
+	@CsvFileSource(resources = "/mx/com/vepormas/pruebas/data.csv")
+	void testDebitoCuentaCsvFile(String monto)
+	{
+		assertNotNull(cuenta.getSaldo());
+		cuenta.debito(new BigDecimal(monto));
+		assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO)>0);
+	}
+
+	@ParameterizedTest(name = "metodo con csv en metodo, numero {index} ejecutando con valor {0} - {argumentsWithNames}")
+	@MethodSource("montoList")
+	void testDebitoCuentaMethodSource(String monto)
+	{
+		assertNotNull(cuenta.getSaldo());
+		cuenta.debito(new BigDecimal(monto));
+		assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO)>0);
+	}
+
+	static List<String> montoList(){
+		return Arrays.asList("100", "200", "900");
+	}
+
+	@Test
+	@Tag("hola")
+	void testInfo(){
+		System.out.println("ejecutando: "+testInfo.getDisplayName()+" "+testInfo.getTestMethod()
+		+" con las etiquetas "+testInfo.getTags());
+	}
+
+	@Tag("Timeout")
+	@Nested
+	class timeOut{
+		
+		@Test
+		@Timeout(5)
+		void testTimeout() throws InterruptedException{
+			TimeUnit.SECONDS.sleep(4);
+		}
+
+		@Test
+		@Timeout(value=2000,unit=TimeUnit.MILLISECONDS)
+		void testTimeout2() throws InterruptedException{
+			TimeUnit.SECONDS.sleep(1);
+		}
+
+		@Test
+		void testTimeout3() {
+			assertTimeout(Duration.ofSeconds(5),()->TimeUnit.SECONDS.sleep(4));
+		}
+		}
+	}
+
